@@ -6,6 +6,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -40,8 +41,10 @@ public class HomeApiTest {
         List <String> a = users_page.getList("data.avatar");
         for(String x : a){
             System.out.println(x);
-            Assert.assertFalse(x.isEmpty(),"data.id is null");
+            //Убедиться, что подстрока с именем файла для всех элементов коллекции равна подстроке для первого элемента
+            Assert.assertEquals(x.replaceAll(".*/", ""), a.get(0).replaceAll(".*/", ""));
         }
+
     }
 
     @Test
@@ -77,5 +80,34 @@ public class HomeApiTest {
         JsonPath jsonNewUser2 = newUser2.jsonPath();
         System.out.println(jsonNewUser2.get("error").toString());
         Assert.assertEquals(jsonNewUser2.get("error"), "Missing password");
+    }
+
+    @Test
+    public void yearsTest(){
+        Response years = given()
+                .when()
+                .get("https://reqres.in/api/unknown")
+                .then()
+                .log().all()
+                .body("page",notNullValue())
+                .body("per_page",notNullValue())
+                .body("data.id",not(hasItem((nullValue()))))
+                .statusCode(200)
+                .extract()
+                .response();
+
+        JsonPath jsonYears = years.jsonPath();
+        Assert.assertFalse(jsonYears.get("page").toString().isEmpty(),"page is null");
+
+        List <Integer> a = jsonYears.getList("data.year");
+
+        System.out.println(a);
+        /*
+        This code will sort the list out of place and collect its elements in another list,
+        which is then compared to the initial list. The comparison will be successful,
+        if both lists contain the same elements in equal positions
+        https://stackoverflow.com/questions/3047051/how-to-determine-if-a-list-is-sorted-in-java
+        */
+        Assert.assertEquals(a, a.stream().sorted().collect(Collectors.toList()));
     }
 }
